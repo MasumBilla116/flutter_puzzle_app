@@ -1,20 +1,14 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:number_puzzle/components/image_picker_service.dart';
-import 'package:number_puzzle/pages/puzzle.dart';
 import 'package:image/image.dart' as imglib;
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:typed_data';
 
-class Home extends StatefulWidget {
+class MakeImageSlice extends StatefulWidget {
   @override
-  State<Home> createState() => _HomeState();
+  State<MakeImageSlice> createState() => _MakeImageSlice();
 }
 
-class _HomeState extends State<Home> {
+class _MakeImageSlice extends State<MakeImageSlice> {
   late Future<List<Image>> imageFile;
 
   @override
@@ -63,22 +57,40 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Puzzle Game"),
+        title: const Text("Number Puzzle"),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Puzzle(),
-                  ),
-                );
+            // Display the images in a GridView
+            FutureBuilder(
+              future: imageFile,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 1.0,
+                      mainAxisSpacing: 0.0,
+                    ),
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        child: snapshot.data![index],
+                      );
+                    },
+                  );
+                } else {
+                  return Text('No images available.');
+                }
               },
-              child: const Text("Start Puzzle Game"),
             ),
           ],
         ),

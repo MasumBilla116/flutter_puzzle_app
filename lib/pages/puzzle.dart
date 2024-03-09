@@ -1,6 +1,10 @@
 import 'dart:ffi';
 import 'package:flutter/material.dart';
 import "dart:math";
+import 'package:flutter/material.dart';
+import 'package:image/image.dart' as imglib;
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:typed_data';
 
 class Puzzle extends StatefulWidget {
   @override
@@ -9,12 +13,50 @@ class Puzzle extends StatefulWidget {
 
 class _PuzzleState extends State<Puzzle> {
   var number = [];
+  late Future<List<Image>> imageFile;
 
   @override
   void initState() {
     super.initState();
     generateRandomNumber();
     setUpPuzzleImageGrid();
+    imageFile = splitAssetsImage('assets/images/bird.jpg');
+  }
+
+  Future<List<Image>> splitAssetsImage(String assetPath) async {
+    // Load the asset image as a byte list
+    ByteData data = await rootBundle.load(assetPath);
+    List<int> input = data.buffer.asUint8List();
+
+    Uint8List uint8List = Uint8List.fromList(input);
+
+    // convert image to image from the image package
+    imglib.Image? image = imglib.decodeImage(uint8List);
+
+    if (image != null) {
+      int x = 0, y = 0;
+      int width = (image.width / 3).floor();
+      int height = (image.height / 3).floor();
+
+      List<imglib.Image> parts = [];
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          parts.add(
+              imglib.copyCrop(image, x: x, y: y, width: width, height: height));
+          x += width;
+        }
+        x = 0;
+        y += height;
+      }
+      List<Image> output = [];
+      for (var img in parts) {
+        output.add(Image.memory(Uint8List.fromList(imglib.encodeJpg(img))));
+      }
+
+      return output;
+    } else {
+      return [];
+    }
   }
 
   void generateRandomNumber() {
@@ -51,10 +93,6 @@ class _PuzzleState extends State<Puzzle> {
       var xpos = (percentage * (i % scopeGrid)); // Adjust the calculation
       var ypos = (percentage * (i % scopeGrid)); // Adjust the calculation
 
-      print("percentage: ${percentage}");
-      print("xpos: ${xpos}");
-      print("ypos: ${ypos}");
-
       puzzleListIndex.add(i);
 
       puzzlListItem.add(
@@ -90,12 +128,25 @@ class _PuzzleState extends State<Puzzle> {
         child: Container(
           color: Colors.grey,
           padding: const EdgeInsets.all(20),
-          child: number.isNotEmpty
-              ? GridView.builder(
+          child: FutureBuilder<List<Image>>(
+            // Assuming imageFile is a Future<List<Image>> variable
+            future: imageFile,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Container(
+                  color: Colors.white,
+                  child: const Text("Something is wrong"),
+                );
+              } else {
+                return GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
-                    mainAxisSpacing: 2,
-                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 3,
+                    crossAxisSpacing: 3,
                   ),
                   itemCount: number.length,
                   itemBuilder: (context, index) {
@@ -106,17 +157,16 @@ class _PuzzleState extends State<Puzzle> {
                             onPressed: () {
                               setPuzzleNumber(index);
                             },
-                            child: puzzlListItem[index],
+                            child: snapshot.data![index],
                           )
                         : Container(
                             color: Colors.white,
                           );
                   },
-                )
-              : Container(
-                  color: Colors.white,
-                  child: const Text("Something is worng"),
-                ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
