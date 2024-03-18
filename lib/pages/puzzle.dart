@@ -13,6 +13,8 @@ class Puzzle extends StatefulWidget {
 
 class _PuzzleState extends State<Puzzle> {
   var number = [];
+  dynamic puzzlListItem = [];
+  dynamic puzzleListIndex = [];
   late Future<List<Image>> imageFile;
 
   @override
@@ -82,9 +84,7 @@ class _PuzzleState extends State<Puzzle> {
     }
   }
 
-  dynamic puzzlListItem = [];
-  dynamic puzzleListIndex = [];
-  final scopeGrid = 8;
+  final scopeGrid = 3;
   void setUpPuzzleImageGrid() {
     final percentage = 100 / (scopeGrid - 1);
     for (var i = 0; i < scopeGrid * scopeGrid; i++) {
@@ -115,11 +115,15 @@ class _PuzzleState extends State<Puzzle> {
           ),
         ),
       );
+      puzzleListIndex.shuffle();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print("puzzleListIndex: ");
+    print(puzzlListItem);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Puzzle Game"),
@@ -129,7 +133,6 @@ class _PuzzleState extends State<Puzzle> {
           color: Colors.grey,
           padding: const EdgeInsets.all(20),
           child: FutureBuilder<List<Image>>(
-            // Assuming imageFile is a Future<List<Image>> variable
             future: imageFile,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -145,8 +148,8 @@ class _PuzzleState extends State<Puzzle> {
                 return GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
-                    mainAxisSpacing: 3,
-                    crossAxisSpacing: 3,
+                    mainAxisSpacing: .80,
+                    crossAxisSpacing: .80,
                   ),
                   itemCount: number.length,
                   itemBuilder: (context, index) {
@@ -157,7 +160,16 @@ class _PuzzleState extends State<Puzzle> {
                             onPressed: () {
                               setPuzzleNumber(index);
                             },
-                            child: snapshot.data![index],
+                            child: SizedBox(
+                              width: 110,
+                              height: 110,
+                              child: ClipRRect(
+                                child: FittedBox(
+                                  fit: BoxFit.fill,
+                                  child: snapshot.data![index],
+                                ),
+                              ),
+                            ),
                           )
                         : Container(
                             color: Colors.white,
